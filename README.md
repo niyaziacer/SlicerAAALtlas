@@ -57,7 +57,7 @@ AAALtlas/
 ├── CMakeLists.txt
 ├── LICENSE.txt
 ├── README.md
-├── Screenshots
+├── Screenshots/
 │   └──Screenshot.png
 └── Resources/
     ├── AAALtlas.png
