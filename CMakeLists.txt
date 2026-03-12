@@ -5,12 +5,12 @@ project(AAALtlas)
 #-----------------------------------------------------------------------------
 # Extension Meta-Information
 #-----------------------------------------------------------------------------
-set(EXTENSION_HOMEPAGE "https://github.com/niyaziacer/AAALtlas")
+set(EXTENSION_HOMEPAGE "https://github.com/niyaziacer/SlicerAAALtlas")
 set(EXTENSION_CATEGORY "Atlases", "Neuroimaging")
 set(EXTENSION_CONTRIBUTORS "Dr. Mustafa Sakci", "Prof. Dr. Niyazi Acer")
 set(EXTENSION_DESCRIPTION "AAL3 atlas-based morphometric and distance-connectome analysis pipeline for 3D Slicer using Elastix.")
-set(EXTENSION_ICONURL "https://github.com/niyaziacer/AAALtlas/Resources/AAALtlas.png")
-set(EXTENSION_SCREENSHOTURLS "https://github.com/niyaziacer/AAALtlas/Screenshots/Screenshot.png")
+set(EXTENSION_ICONURL "https://github.com/niyaziacer/SlicerAAALtlas/Resources/AAALtlas.png")
+set(EXTENSION_SCREENSHOTURLS "https://github.com/niyaziacer/SlicerAAALtlas/Screenshots/Screenshot.png")
 set(EXTENSION_DEPENDS "SlicerElastix")
 
 #-----------------------------------------------------------------------------
