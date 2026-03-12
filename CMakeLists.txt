@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(AAALtlas)
+project(SlicerAAALtlas)
 
 #-----------------------------------------------------------------------------
 # Extension Meta-Information
