@@ -52,8 +52,10 @@ Below is a demonstration of the AAALtlas pipeline output as rendered in 3D Slice
 
 ```text
 AAALtlas/
+├── AAALtlas.json
 ├── AAALtlas.py
 ├── CMakeLists.txt
+├── LICENSE.txt
 ├── README.md
 ├── Screenshots
 │   └──Screenshot.png
