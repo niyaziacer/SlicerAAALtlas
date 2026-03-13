@@ -78,7 +78,7 @@ SlicerAAL3BrainLabeling/
 2. Open 3D Slicer.
 3. Navigate to **Edit** → **Application Settings** → **Modules**.
 4. Add the cloned `SlicerAAL3BrainLabeling` folder to your **Additional Module Paths**.
-5. Restart 3D Slicer. The module will be available under the **Atlases** and **Neuroimaging** categories.
+5. Restart 3D Slicer. The module will be available under the **Neuroimaging** category.
 
 ## 🚀 Usage
 ### 👤 Single Patient Analysis
