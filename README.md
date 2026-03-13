@@ -96,6 +96,6 @@ SlicerAAL3BrainLabeling/
 Dr. Mustafa Sakci
 Prof. Dr. Niyazi Acer 
 
-## 📚 Acknowledgments \& Citations
+## 📚 Acknowledgments & Citations
 If you use this pipeline in your research, please ensure you cite the foundational AAL3 atlas paper:
 Rolls, E. T., Huang, C. C., Lin, C. P., Feng, J., \& Joliot, M. (2020). Automated anatomical labelling atlas 3. Neuroimage, 206, 116189.
