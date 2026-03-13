@@ -4,7 +4,7 @@
 
 # AAL3BrainLabeling: Automated Anatomical Labeling 3 and Distance-Connectome Pipeline for 3D Slicer
 
-**AAL3BrainLabeling** is a robust, high-fidelity neuroimaging pipeline designed as an extension for **3D Slicer**. Developed for publication-quality biophysics and neuroanatomy research, it seamlessly maps the **AAL3** (Automated Anatomical Labeling 3) atlas to patient-specific MRI data.
+**AAL3BrainLabeling** is a robust, high-fidelity neuroimaging pipeline designed as an extension for **3D Slicer**. Developed for publication-quality neuroanatomy research, it seamlessly maps the **AAL3** (Automated Anatomical Labeling 3) atlas to patient-specific MRI data.
 
 The pipeline handles bias field correction, multimodal image registration, automated anatomical segmentation, morphometric statistics extraction, hemispheric asymmetry calculation, and structural connectome generation.
 
