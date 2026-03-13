@@ -35,6 +35,7 @@ class AAL3BrainLabelingWidget(ScriptedLoadableModuleWidget):
 
         # 1. Logo Integration
         try:
+            # FIX: Forced lowercase to match Slicer's internal module registry
             moduleDir = os.path.dirname(slicer.modules.aal3brainlabeling.path)
             logoPath = os.path.join(moduleDir, 'Resources', 'AAL3BrainLabeling.png')
             if not os.path.exists(logoPath):
@@ -80,6 +81,14 @@ class AAL3BrainLabelingWidget(ScriptedLoadableModuleWidget):
         self.progress = qt.QProgressBar()
         self.progress.hide()
         self.layout.addWidget(self.progress)
+        
+        # Status Label Configuration (Informs user about long processes)
+        self.statusLabel = qt.QLabel("")
+        self.statusLabel.setAlignment(qt.Qt.AlignCenter)
+        self.statusLabel.setStyleSheet("color: #d35400; font-weight: bold; padding: 5px;")
+        self.statusLabel.hide()
+        self.layout.addWidget(self.statusLabel)
+
         self.layout.addStretch(1)
 
         # Signal Connections
@@ -99,8 +108,9 @@ class AAL3BrainLabelingWidget(ScriptedLoadableModuleWidget):
             slicer.util.errorDisplay("Please select an MRI volume first.")
             return
         self.progress.show()
+        self.statusLabel.show()
         
-        segmentation = self.logic.pipeline(volume, self.outputPath, self.progress)
+        segmentation = self.logic.pipeline(volume, self.outputPath, self.progress, self.statusLabel)
         
         # --- AUTOMATIC SEGMENT EDITOR SETUP ---
         if segmentation:
@@ -117,54 +127,58 @@ class AAL3BrainLabelingWidget(ScriptedLoadableModuleWidget):
         if not folder:
             return
         self.progress.show()
-        self.logic.batchPipeline(folder, self.outputPath, self.progress)
+        self.statusLabel.show()
+        self.logic.batchPipeline(folder, self.outputPath, self.progress, self.statusLabel)
 
 # -------------------------------------------------------------------------
 # AAL3BrainLabelingLogic
 # -------------------------------------------------------------------------
 class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
 
-    def pipeline(self, inputVolume, outDir, progress):
+    def updateUI(self, msg, progress_val, progress_bar, status_label):
+        """Updates Slicer UI to maintain user feedback during synchronous tasks."""
+        print(msg)
+        if progress_bar:
+            progress_bar.setValue(progress_val)
+        if status_label:
+            status_label.text = msg
+        slicer.app.processEvents()
+
+    def pipeline(self, inputVolume, outDir, progress, statusLabel=None):
         volName = inputVolume.GetName()
         
-        print("\n" + "="*50)
-        print(f"AAL3BrainLabeling Pipeline Started for: {volName}")
-        print("="*50)
-        progress.setValue(5)
+        self.updateUI(f"Starting analysis for: {volName}...", 5, progress, statusLabel)
 
         # Step 1: N4 Bias Field Correction
-        print(">>> Step 1: N4 Bias Field Correction...")
+        self.updateUI("Step 1/5: N4 Bias Field Correction...", 15, progress, statusLabel)
         volN4 = self.biasCorrection(inputVolume)
-        progress.setValue(20)
 
         # Step 2: High-Fidelity Elastix Registration
-        print(">>> Step 2: Elastix Registration (Template -> Patient)...")
+        warning_msg = "Step 2/5: Registration running...\n[WAIT] UI may freeze for 3-5 mins. This is normal."
+        self.updateUI(warning_msg, 30, progress, statusLabel)
+        
         regVol, transform = self.registration(volN4)
         if not transform:
             slicer.util.errorDisplay("Pipeline aborted: Registration failed.")
-            return
-        progress.setValue(50)
+            self.updateUI("ERROR: Registration Failed!", 0, progress, statusLabel)
+            return None
 
         # Step 3: Atlas Mapping
-        print(">>> Step 3: Mapping AAL3 Atlas to Patient Space...")
+        self.updateUI("Step 3/5: Mapping Atlas to Patient Space...", 60, progress, statusLabel)
         segmentation = self.atlasMapping(transform)
-        progress.setValue(70)
 
         # Step 4: Statistics Extraction
-        print(">>> Step 4: Extracting Volumetric Data...")
+        self.updateUI("Step 4/5: Extracting Volumetric Data...", 80, progress, statusLabel)
         stats = self.volumeStatistics(segmentation, regVol)
-        progress.setValue(85)
 
         # Step 5: Data Export & Connectome Analysis
-        print(">>> Step 5: Computing Asymmetry and Connectome...")
+        self.updateUI("Step 5/5: Computing Connectome results...", 90, progress, statusLabel)
         self.exportStats(stats, outDir, segmentation, volName)
         self.asymmetry(stats, segmentation)
         self.connectome(stats, outDir, volName)
         
-        progress.setValue(100)
-        print("="*50)
-        print("Pipeline Finished Successfully.")
-        slicer.util.infoDisplay(f"Analysis complete for {volName}!\nData saved to: {outDir}")
+        self.updateUI("Analysis Successfully Completed!", 100, progress, statusLabel)
+        slicer.util.infoDisplay(f"Analysis complete for {volName}!\nResults saved to: {outDir}")
         
         return segmentation
 
@@ -195,7 +209,7 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
         templatePath = os.path.join(moduleDir, "Resources", "Templates", "MNI152_T1_1mm.nii.gz")
         
         if not os.path.exists(templatePath):
-            slicer.util.errorDisplay(f"CRITICAL ERROR: Template not found at {templatePath}")
+            slicer.util.errorDisplay(f"CRITICAL ERROR: Template missing at {templatePath}")
             return volume, None
             
         templateNode = slicer.util.loadVolume(templatePath, {"show": False})
@@ -232,7 +246,7 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
                 '(WriteResultImage "false")\n'
             )
 
-            # STAGE 1: RIGID (Global alignment. Highly robust initialization)
+            # STAGE 1: RIGID
             param_rigid = base_config + (
                 '(Transform "EulerTransform")\n'
                 '(NumberOfResolutions 4)\n'
@@ -240,7 +254,7 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
                 '(NumberOfSpatialSamples 20000)\n'
             )
 
-            # STAGE 2: AFFINE (Global scaling and shearing to match target brain size)
+            # STAGE 2: AFFINE
             param_affine = base_config + (
                 '(Transform "AffineTransform")\n'
                 '(NumberOfResolutions 4)\n'
@@ -248,34 +262,32 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
                 '(NumberOfSpatialSamples 20000)\n'
             )
 
-            # STAGE 3: B-SPLINE (Non-linear topological mapping - Maximum Fidelity)
+            # STAGE 3: B-SPLINE (Goldilocks Optimization)
+            # 12.0 mm spacing ensures cortical boundaries are matched
+            # without causing topological tissue melting.
             param_bspline = base_config + (
                 '(Transform "BSplineTransform")\n'
-                '(FinalGridSpacingInPhysicalUnits 15.0)\n' 
+                '(FinalGridSpacingInPhysicalUnits 12.0)\n' 
                 '(NumberOfResolutions 5)\n' 
                 '(MaximumNumberOfIterations 2500)\n'
                 '(NumberOfSpatialSamples 30000)\n'
             )
 
             temp_dir = slicer.app.temporaryPath
-            rigid_file = os.path.join(temp_dir, "AAL3BrainLabeling_Rigid.txt")
-            affine_file = os.path.join(temp_dir, "AAL3BrainLabeling_Affine.txt")
-            bspline_file = os.path.join(temp_dir, "AAL3BrainLabeling_BSpline.txt")
+            rigid_file = os.path.join(temp_dir, "AAL3_Rigid.txt")
+            affine_file = os.path.join(temp_dir, "AAL3_Affine.txt")
+            bspline_file = os.path.join(temp_dir, "AAL3_BSpline.txt")
 
             with open(rigid_file, "w", newline='\n') as f: f.write(param_rigid)
             with open(affine_file, "w", newline='\n') as f: f.write(param_affine)
             with open(bspline_file, "w", newline='\n') as f: f.write(param_bspline)
 
-            safe_param_paths = [rigid_file, affine_file, bspline_file]
-
-            logic.registerVolumes(volume, templateNode, parameterFilenames=safe_param_paths, outputTransformNode=transformNode)
-            print(">>> High-Fidelity Elastix registration completed successfully.")
+            logic.registerVolumes(volume, templateNode, parameterFilenames=[rigid_file, affine_file, bspline_file], outputTransformNode=transformNode)
             
         except Exception as e:
-            print(f"Elastix Core Error: {str(e)}")
+            print(f"Elastix Error: {str(e)}")
             slicer.mrmlScene.RemoveNode(transformNode)
             transformNode = None
-            
         finally:
             slicer.mrmlScene.RemoveNode(templateNode)
 
@@ -331,15 +343,12 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
                 mean = self.getStatValue(stats, sid, 'mean')
                 
                 writer.writerow([name, vol, mean])
-        print(f"Volumetric results saved to: {csvPath}")
 
     def asymmetry(self, stats, segmentation):
-        print("\n--- Hemispheric Asymmetry Indices (AI) ---")
         vol_data = {}
         for sid in stats['SegmentIDs']:
             seg_obj = segmentation.GetSegmentation().GetSegment(sid)
             name = seg_obj.GetName() if seg_obj else str(sid)
-            
             vol = self.getStatValue(stats, sid, 'volume_mm3')
             if vol == 0.0: vol = self.getStatValue(stats, sid, 'volume')
             vol_data[name] = vol
@@ -348,9 +357,7 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
             if L_name.endswith("_L"):
                 R_name = L_name.replace("_L", "_R")
                 if R_name in vol_data:
-                    L = vol_data[L_name]
-                    R = vol_data[R_name]
-                    
+                    L, R = vol_data[L_name], vol_data[R_name]
                     ai = (L - R) / (L + R + 1e-6)
                     print(f"{L_name[:-2]} AI: {ai:.4f}")
 
@@ -358,7 +365,6 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
         ids = stats['SegmentIDs']
         n = len(ids)
         matrix = np.zeros((n, n))
-        
         centroids = [self.getCentroid(stats, sid) for sid in ids]
 
         for i in range(n):
@@ -366,51 +372,23 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
                 if i != j:
                     matrix[i,j] = np.linalg.norm(np.array(centroids[i]) - np.array(centroids[j]))
 
-        fileName = f"{volName}_Distance_Connectome_Matrix.csv"
-        csvPath = os.path.join(outDir, fileName)
-        
+        csvPath = os.path.join(outDir, f"{volName}_Connectome_Matrix.csv")
         np.savetxt(csvPath, matrix, delimiter=",", fmt="%.4f")
-        print(f"Connectome matrix saved to: {csvPath}")
 
-    def batchPipeline(self, folder, outDir, progress):
-        """
-        Processes a batch of MRI volumes (.nii or .nii.gz) from a selected folder.
-        Ensures strict memory management by clearing MRML scene nodes after each 
-        subject to prevent RAM overflow (memory leaks) during large cohort analyses.
-        """
+    def batchPipeline(self, folder, outDir, progress, statusLabel=None):
+        """Processes folder and clears scene nodes for memory efficiency."""
         files = [f for f in os.listdir(folder) if f.endswith(('.nii', '.nii.gz'))]
         total = len(files)
-        print(f"\nBatch processing initiated for {total} files.")
         
         for i, f in enumerate(files):
-            print(f"\nProcessing subject {i+1}/{total}: {f}")
             path = os.path.join(folder, f)
-            
-            # Load the current subject's volume into the scene
             volume = slicer.util.loadVolume(path)
-            
             if volume:
-                # 1. Execute the main pipeline and capture the resulting segmentation
-                segmentation = self.pipeline(volume, outDir, progress)
-                
-                # ---------------------------------------------------------
-                # MEMORY MANAGEMENT: Clean up the MRML scene
-                # ---------------------------------------------------------
-                # Remove the original input volume
+                segmentation = self.pipeline(volume, outDir, progress, statusLabel)
                 slicer.mrmlScene.RemoveNode(volume)
-                
-                # Remove the generated segmentation node
                 if segmentation:
                     slicer.mrmlScene.RemoveNode(segmentation)
-                    
-                # Remove intermediate N4 Bias Field Correction node
-                n4_node = slicer.mrmlScene.GetFirstNodeByName("N4_Corrected")
-                if n4_node:
-                    slicer.mrmlScene.RemoveNode(n4_node)
-                    
-                # Remove the computed Elastix transform node
-                transform_node = slicer.mrmlScene.GetFirstNodeByName("AAL3BrainLabeling_Transform")
-                if transform_node:
-                    slicer.mrmlScene.RemoveNode(transform_node)
-                    
-                print(f"--- Subject {i+1} completed and memory cleared ---")
+                
+                for node_name in ["N4_Corrected", "AAL3BrainLabeling_Transform"]:
+                    node = slicer.mrmlScene.GetFirstNodeByName(node_name)
+                    if node: slicer.mrmlScene.RemoveNode(node)
