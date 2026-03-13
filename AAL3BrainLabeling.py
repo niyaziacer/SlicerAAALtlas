@@ -232,10 +232,30 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
                 '(WriteResultImage "false")\n'
             )
 
-            # OPTIMIZED: Max iterations and spatial samples increased for peak accuracy
-            param_rigid = base_config + '(Transform "EulerTransform")\n(NumberOfResolutions 4)\n(MaximumNumberOfIterations 500)\n(NumberOfSpatialSamples 10000)\n'
-            param_affine = base_config + '(Transform "AffineTransform")\n(NumberOfResolutions 4)\n(MaximumNumberOfIterations 500)\n(NumberOfSpatialSamples 10000)\n'
-            param_bspline = base_config + '(Transform "BSplineTransform")\n(FinalGridSpacingInPhysicalUnits 10.0)\n(NumberOfResolutions 4)\n(MaximumNumberOfIterations 500)\n(NumberOfSpatialSamples 10000)\n'
+            # STAGE 1: RIGID (Global alignment. Highly robust initialization)
+            param_rigid = base_config + (
+                '(Transform "EulerTransform")\n'
+                '(NumberOfResolutions 4)\n'
+                '(MaximumNumberOfIterations 1000)\n'
+                '(NumberOfSpatialSamples 20000)\n'
+            )
+
+            # STAGE 2: AFFINE (Global scaling and shearing to match target brain size)
+            param_affine = base_config + (
+                '(Transform "AffineTransform")\n'
+                '(NumberOfResolutions 4)\n'
+                '(MaximumNumberOfIterations 1000)\n'
+                '(NumberOfSpatialSamples 20000)\n'
+            )
+
+            # STAGE 3: B-SPLINE (Non-linear topological mapping - Maximum Fidelity)
+            param_bspline = base_config + (
+                '(Transform "BSplineTransform")\n'
+                '(FinalGridSpacingInPhysicalUnits 15.0)\n' 
+                '(NumberOfResolutions 5)\n' 
+                '(MaximumNumberOfIterations 2500)\n'
+                '(NumberOfSpatialSamples 30000)\n'
+            )
 
             temp_dir = slicer.app.temporaryPath
             rigid_file = os.path.join(temp_dir, "AAL3BrainLabeling_Rigid.txt")
