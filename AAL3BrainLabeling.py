@@ -196,7 +196,7 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
         return segmentation, volN4, transform
 
     def registration(self, volume, volName):
-        """Executes a 3-stage Elastix registration with tight grid spacing for sulcal precision."""
+        """Executes a 3-stage Elastix registration optimized for memory stability and sulcal accuracy."""
         moduleDir = os.path.dirname(slicer.modules.aal3brainlabeling.path)
         templatePath = os.path.join(moduleDir, "Resources", "Templates", "MNI152_T1_1mm.nii.gz")
         
@@ -232,14 +232,14 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
             p_rigid = base_config + '(Transform "EulerTransform")\n(MaximumNumberOfIterations 1000)\n'
             p_affine = base_config + '(Transform "AffineTransform")\n(MaximumNumberOfIterations 1000)\n'
             
-            # STAGE 3: B-Spline optimized for deep cortical sulci mapping
-            # Grid spacing set to 6.0mm for fine topological tracking
+            # STAGE 3: B-Spline optimized for stability (OOM prevention) and accuracy
+            # Grid spacing set to 10.0mm and resolutions to 4 to prevent RAM exhaustion
             p_bspline = base_config + (
                 '(Transform "BSplineTransform")\n'
-                '(FinalGridSpacingInPhysicalUnits 6.0)\n' 
-                '(NumberOfResolutions 5)\n' 
-                '(MaximumNumberOfIterations 1500)\n'
-                '(NumberOfSpatialSamples 30000)\n' 
+                '(FinalGridSpacingInPhysicalUnits 10.0)\n' 
+                '(NumberOfResolutions 4)\n' 
+                '(MaximumNumberOfIterations 1000)\n'
+                '(NumberOfSpatialSamples 15000)\n' 
             )
             
             temp_dir = slicer.app.temporaryPath
@@ -388,6 +388,10 @@ class AAL3BrainLabelingLogic(ScriptedLoadableModuleLogic):
                 if result:
                     segmentation, volN4, transform = result
                     if segmentation: slicer.mrmlScene.RemoveNode(segmentation)
+                    if volN4: slicer.mrmlScene.RemoveNode(volN4)
+                    if transform: slicer.mrmlScene.RemoveNode(transform)
+                
+                slicer.mrmlScene.RemoveNode(volume)
                     if volN4: slicer.mrmlScene.RemoveNode(volN4)
                     if transform: slicer.mrmlScene.RemoveNode(transform)
                 
