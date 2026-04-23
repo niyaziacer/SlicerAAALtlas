@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.16...3.27)
 
 project(AAL3BrainLabeling)
 
@@ -8,7 +8,7 @@ project(AAL3BrainLabeling)
 set(EXTENSION_HOMEPAGE "https://github.com/niyaziacer/SlicerAAL3BrainLabeling")
 set(EXTENSION_CATEGORY "Neuroimaging")
 set(EXTENSION_CONTRIBUTORS "Dr. Mustafa Sakci" "Prof. Dr. Niyazi Acer")
-set(EXTENSION_DESCRIPTION "AAL3 atlas-based morphometric and distance-connectome analysis pipeline for 3D Slicer using Elastix.")
+set(EXTENSION_DESCRIPTION "AAL3 atlas-based morphometric analysis pipeline for 3D Slicer using Elastix.")
 set(EXTENSION_ICONURL "https://raw.githubusercontent.com/niyaziacer/SlicerAAL3BrainLabeling/main/Resources/AAL3BrainLabeling.png")
 set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/niyaziacer/SlicerAAL3BrainLabeling/main/Screenshots/Screenshot.png")
 set(EXTENSION_DEPENDS "SlicerElastix")
@@ -28,7 +28,6 @@ set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
 )
 
-# All resource files required by the module (Logo, Atlas, ColorTable, Template, and Labels)
 set(MODULE_PYTHON_RESOURCES
   Resources/AAL3BrainLabeling.png
   Resources/Atlas/AAL3v1_1mm.nii.gz
@@ -38,7 +37,7 @@ set(MODULE_PYTHON_RESOURCES
 )
 
 #-----------------------------------------------------------------------------
-# Build the Module & Extension
+# Build the Module
 #-----------------------------------------------------------------------------
 slicerMacroBuildScriptedModule(
   NAME ${MODULE_NAME}
@@ -46,4 +45,8 @@ slicerMacroBuildScriptedModule(
   RESOURCES ${MODULE_PYTHON_RESOURCES}
 )
 
-slicer_extension_build()
+#-----------------------------------------------------------------------------
+# Extension Packaging (Slicer_extension_build yerine standart CPACK)
+#-----------------------------------------------------------------------------
+set(CPACK_INSTALL_CMAKE_PROJECTS "${CMAKE_BINARY_DIR};${EXTENSION_NAME};ALL;/")
+include(${Slicer_EXTENSION_CPACK})
