@@ -7,7 +7,7 @@ project(AAL3BrainLabeling)
 #-----------------------------------------------------------------------------
 set(EXTENSION_HOMEPAGE "https://github.com/niyaziacer/SlicerAAL3BrainLabeling")
 set(EXTENSION_CATEGORY "Neuroimaging")
-set(EXTENSION_CONTRIBUTORS "Dr. Mustafa Sakci", "Prof. Dr. Niyazi Acer")
+set(EXTENSION_CONTRIBUTORS "Dr. Mustafa Sakci" "Prof. Dr. Niyazi Acer")
 set(EXTENSION_DESCRIPTION "AAL3 atlas-based morphometric and distance-connectome analysis pipeline for 3D Slicer using Elastix.")
 set(EXTENSION_ICONURL "https://raw.githubusercontent.com/niyaziacer/SlicerAAL3BrainLabeling/main/Resources/AAL3BrainLabeling.png")
 set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/niyaziacer/SlicerAAL3BrainLabeling/main/Screenshots/Screenshot.png")
@@ -22,7 +22,7 @@ include(${Slicer_USE_FILE})
 #-----------------------------------------------------------------------------
 # Module Configuration
 #-----------------------------------------------------------------------------
-set(MODULE_NAME AAALtlas)
+set(MODULE_NAME AAL3BrainLabeling)
 
 set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
